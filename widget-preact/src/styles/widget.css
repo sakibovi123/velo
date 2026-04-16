@@ -1,0 +1,8 @@
+/*
+  These directives are processed by Tailwind + PostCSS at build time.
+  The resulting CSS string is injected into the Shadow DOM at runtime,
+  so Tailwind utilities never escape into the host page.
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

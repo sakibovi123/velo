@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Velo Widget — Dev Harness</title>
+  </head>
+  <body style="background:#f3f4f6; display:flex; align-items:center; justify-content:center; height:100vh; margin:0;">
+    <!--
+      Dev harness: simulates how a customer would embed the widget.
+      Replace the api-key value with a real key from your backend.
+    -->
+    <velo-widget
+      api-key="pk_test_dev_key"
+      socket-url="http://localhost:3001"
+    ></velo-widget>
+
+    <script type="module" src="/src/index.js"></script>
+  </body>
+</html>
