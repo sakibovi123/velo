@@ -16,16 +16,16 @@ import { createMessage } from "../lib/djangoClient.js";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type IoServer = Server<
-  Record<string, never>,
-  Record<string, never>,
-  Record<string, never>,
+  Record<string, (...args: any[]) => void>,
+  Record<string, (...args: any[]) => void>,
+  Record<string, (...args: any[]) => void>,
   SocketData
 >;
 
 type AppSocket = Socket<
-  Record<string, never>,
-  Record<string, never>,
-  Record<string, never>,
+  Record<string, (...args: any[]) => void>,
+  Record<string, (...args: any[]) => void>,
+  Record<string, (...args: any[]) => void>,
   SocketData
 >;
 

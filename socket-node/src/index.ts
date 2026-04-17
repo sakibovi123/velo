@@ -25,9 +25,9 @@ const httpServer = createServer(app);
 // InterServerEvents, SocketData. Using empty objects for the event maps
 // until Phase 3 defines the full event contracts.
 const io = new Server<
-  Record<string, never>,
-  Record<string, never>,
-  Record<string, never>,
+  Record<string, (...args: any[]) => void>,
+  Record<string, (...args: any[]) => void>,
+  Record<string, (...args: any[]) => void>,
   SocketData
 >(httpServer, {
   cors: {

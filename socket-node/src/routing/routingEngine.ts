@@ -24,13 +24,13 @@ export interface ChatStartPayload {
   requiredSkillId: string;
   visitorName?: string;
   visitorEmail?: string;
-  visitorMeta?: Record<string, unknown>;
+  visitorMeta?: Record<string, (...args: any[]) => void>;
 }
 
 type IoServer = Server<
-  Record<string, never>,
-  Record<string, never>,
-  Record<string, never>,
+  Record<string, (...args: any[]) => void>,
+  Record<string, (...args: any[]) => void>,
+  Record<string, (...args: any[]) => void>,
   SocketData
 >;
 

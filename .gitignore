@@ -1,25 +1,57 @@
-.venv
-.vscode
-.idea
-.cursor
-.env
-.env.local
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-*.log
+# ── Python ────────────────────────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
 *.sqlite3
 *.db
+*.log
+
+# ── Node / JS (all sub-projects) ──────────────────────────────────────────────
+node_modules/
+.next/
+.nuxt/
+dist/
+build/
+.cache/
+.turbo/
+.vercel/
+
+# ── Widget build output ────────────────────────────────────────────────────────
+widget-preact/dist/
+
+# ── Environment files ─────────────────────────────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+!.env.example
+
+# ── Editors ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Test / Coverage ───────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+htmlcov/
+.pytest_cache/
+
+# ── TypeScript ────────────────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
 *.bak
-src/node_modules
-src/dist
-src/build
-src/.cache
-src/.env
-src/.env.local
-src/.vscode
-src/.idea
-src/__pycache__
-src/*.pyc
-src/*.pyo
+*.tmp
+*.orig

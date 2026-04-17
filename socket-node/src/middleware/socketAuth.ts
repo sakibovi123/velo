@@ -4,13 +4,6 @@ import type { Socket } from "socket.io";
 import config from "../config.js";
 import { redisClient } from "../lib/redisClient.js";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-/**
- * Shape stamped onto socket.data after successful authentication.
- * Exported so the Server generic in index.ts can reference it, giving
- * fully-typed socket.data inside all connection event handlers.
- */
 export interface SocketData {
   role: "agent" | "visitor";
   userId: string | null;
@@ -30,47 +23,26 @@ interface TenantApiKeyResponse {
   allowed_domain: string;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const CACHE_PREFIX = "apikey:";
 const CACHE_SENTINEL_INVALID = "__invalid__";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Verify a JWT issued by Django (djangorestframework-simplejwt, HS256).
- * Expected custom claims: user_id, tenant_id, email.
- */
 function verifyJwt(token: string): AgentJwtPayload {
   return jwt.verify(token, config.jwtSecret, {
     algorithms: ["HS256"],
   }) as AgentJwtPayload;
 }
 
-/**
- * Validate a public Tenant API key by calling the Django internal endpoint.
- * Results (valid and invalid) are cached in Redis to avoid a DB round-trip
- * on every widget reconnect.
- *
- * Django must expose:
- *   GET /api/v1/internal/validate-api-key/
- *   Header: X-Api-Key: <key>
- *   200 → { tenant_id, tenant_slug, allowed_domain }
- *   401 → key unknown / inactive
- */
 async function validateApiKey(
   apiKey: string
 ): Promise<TenantApiKeyResponse | null> {
   const cacheKey = `${CACHE_PREFIX}${apiKey}`;
 
-  // 1. Check Redis cache first
   const cached = await redisClient.get(cacheKey);
   if (cached !== null) {
     if (cached === CACHE_SENTINEL_INVALID) return null;
     return JSON.parse(cached) as TenantApiKeyResponse;
   }
 
-  // 2. Call Django
   let tenantData: TenantApiKeyResponse;
   try {
     const response = await axios.get<TenantApiKeyResponse>(
@@ -80,7 +52,6 @@ async function validateApiKey(
     tenantData = response.data;
   } catch (err) {
     if (axios.isAxiosError(err) && err.response?.status === 401) {
-      // Cache the invalid result to short-circuit future bad-key probes
       await redisClient.set(
         cacheKey,
         CACHE_SENTINEL_INVALID,
@@ -89,12 +60,10 @@ async function validateApiKey(
       );
       return null;
     }
-    // Network errors or unexpected statuses: do NOT cache — let the client retry
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(`Django API key validation failed: ${message}`);
   }
 
-  // 3. Cache the valid result
   await redisClient.set(
     cacheKey,
     JSON.stringify(tenantData),
@@ -105,19 +74,6 @@ async function validateApiKey(
   return tenantData;
 }
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
-
-/**
- * Socket.io authentication middleware.
- *
- * Clients must send credentials in socket.handshake.auth:
- *   Agent (dashboard):  { token: "<JWT>" }
- *   Visitor (widget):   { apiKey: "<public-tenant-api-key>" }
- *
- * On success, socket.data is populated as SocketData.
- * On failure, next() is called with an Error so Socket.io rejects
- * the handshake before the socket is registered.
- */
 export async function socketAuthMiddleware(
   socket: Socket,
   next: (err?: Error) => void
@@ -127,7 +83,6 @@ export async function socketAuthMiddleware(
     apiKey?: string;
   };
 
-  // ── Branch A: JWT (agent) ─────────────────────────────────────────────────
   if (token) {
     try {
       const rawToken = token.startsWith("Bearer ") ? token.slice(7) : token;
@@ -153,7 +108,6 @@ export async function socketAuthMiddleware(
     }
   }
 
-  // ── Branch B: Public API key (visitor) ────────────────────────────────────
   if (apiKey) {
     try {
       const tenantData = await validateApiKey(apiKey);
@@ -174,6 +128,5 @@ export async function socketAuthMiddleware(
     }
   }
 
-  // ── No credentials provided ───────────────────────────────────────────────
   return next(new Error("AUTH_NO_CREDENTIALS"));
 }

@@ -1,0 +1,18 @@
+{
+  "name": "velo",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix socket-node && npm install --prefix dashboard-next && npm install --prefix widget-preact && npm install --prefix landing-next",
+    "predev": "kill-port 3000 3001 3002 5173 8000 --silent || true",
+    "dev": "concurrently --names \"django,socket,dashboard,widget,landing\" --prefix-colors \"green,blue,magenta,cyan,yellow\" \"npm run dev:django\" \"npm run dev:socket\" \"npm run dev:dashboard\" \"npm run dev:widget\" \"npm run dev:landing\"",
+    "dev:django": "cd backend-django && .venv\\Scripts\\python manage.py runserver",
+    "dev:socket": "cd socket-node && npm run dev",
+    "dev:dashboard": "cd dashboard-next && npm run dev -- --port 3000",
+    "dev:widget": "cd widget-preact && npm run dev",
+    "dev:landing": "cd landing-next && npm run dev -- --port 3002"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "kill-port": "^2.0.1"
+  }
+}

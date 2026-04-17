@@ -1,9 +1,9 @@
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 import config from "../config.js";
 
 function createClient(name: string): Redis {
   const client = new Redis(config.redisUrl, {
-    lazyConnect: false,
+    lazyConnect: true,
     // Required by @socket.io/redis-adapter — allows the adapter to manage
     // its own retry logic without ioredis interfering on blocked commands.
     maxRetriesPerRequest: null,
