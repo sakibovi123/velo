@@ -5,7 +5,7 @@ let socket = null;
 /**
  * Returns a singleton Socket.io client for the agent dashboard.
  * The JWT is sent in the handshake so the Node server can identify
- * the agent and their tenant without a separate HTTP lookup.
+ * the agent and their workspace without a separate HTTP lookup.
  *
  * @param {string} token  — JWT access token
  * @returns {import("socket.io-client").Socket}

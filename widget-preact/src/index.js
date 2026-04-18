@@ -15,7 +15,7 @@ import widgetStyles from "./styles/widget.css?inline";
  *   ></velo-widget>
  *
  * Attributes:
- *   api-key    (required) — public API key issued per tenant domain
+ *   api-key    (required) — public API key issued per workspace domain
  *   skill-id   (required) — skill UUID to route the chat to the right team
  *   socket-url (optional) — defaults to same origin on port 3001
  */

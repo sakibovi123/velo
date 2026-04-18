@@ -47,28 +47,24 @@ interface ChatEndPayload {
 // ─── Handler registration ─────────────────────────────────────────────────────
 
 export function registerChatHandlers(io: IoServer, socket: AppSocket): void {
-  const { role, userId, tenantId } = socket.data;
+  const { role, userId, workspaceId } = socket.data;
 
   // ── Agent-only handlers ────────────────────────────────────────────────────
 
   if (role === "agent" && userId) {
-    socket.join(`user:${tenantId}:${userId}`);
+    socket.join(`user:${workspaceId}:${userId}`);
 
-    /**
-     * agent:setPresence
-     * Payload: { presence, skillIds?, maxChatCapacity? }
-     */
     socket.on("agent:setPresence", async (payload: SetPresencePayload) => {
       try {
         const { presence, skillIds, maxChatCapacity } = payload;
 
         if (skillIds !== undefined && maxChatCapacity !== undefined) {
-          await syncAgentState(tenantId, userId, skillIds, maxChatCapacity, presence);
+          await syncAgentState(workspaceId, userId, skillIds, maxChatCapacity, presence);
         } else {
-          await setPresence(tenantId, userId, presence);
+          await setPresence(workspaceId, userId, presence);
         }
 
-        socket.to(`agents:${tenantId}`).emit("agent:presenceUpdate", {
+        socket.to(`agents:${workspaceId}`).emit("agent:presenceUpdate", {
           userId,
           presence,
         });
@@ -82,11 +78,6 @@ export function registerChatHandlers(io: IoServer, socket: AppSocket): void {
       }
     });
 
-    /**
-     * message:send (agent)
-     * Agent replies to a visitor inside a conversation.
-     * Payload: { conversationId, text }
-     */
     socket.on("message:send", async (payload: MessageSendPayload) => {
       const { conversationId, text } = payload;
       if (!conversationId || !text?.trim()) return;
@@ -99,19 +90,16 @@ export function registerChatHandlers(io: IoServer, socket: AppSocket): void {
         timestamp: Date.now(),
       };
 
-      // 1. Broadcast to visitor socket (the conversation room)
       io.to(`conversation:${conversationId}`).emit("message:incoming", {
         conversationId,
         message,
       });
 
-      // 2. Broadcast to all other agents viewing this conversation
-      socket.to(`tenant:${tenantId}`).emit("message:incoming", {
+      socket.to(`workspace:${workspaceId}`).emit("message:incoming", {
         conversationId,
         message,
       });
 
-      // 3. Persist to Django (non-blocking — failure logged, not thrown)
       createMessage(conversationId, {
         sender_type: "agent",
         sender_agent: userId,
@@ -121,41 +109,30 @@ export function registerChatHandlers(io: IoServer, socket: AppSocket): void {
       );
     });
 
-    /**
-     * chat:end
-     * Agent resolved/closed a conversation.
-     * Payload: { chatId }
-     */
     socket.on("chat:end", async (payload: ChatEndPayload) => {
       try {
         const { chatId } = payload;
 
-        socket.to(`tenant:${tenantId}`).emit("chat:closed", {
+        socket.to(`workspace:${workspaceId}`).emit("chat:closed", {
           chatId,
           closedBy: userId,
           closedAt: Date.now(),
         });
 
-        // Pass chatId so routingEngine can persist "resolved" status
-        await handleChatEnd(io, tenantId, userId, chatId);
+        await handleChatEnd(io, workspaceId, userId, chatId);
       } catch (err) {
         console.error("[chatHandlers] chat:end error:", err);
       }
     });
 
     socket.on("disconnect", async () => {
-      await handleAgentDisconnect(tenantId, userId);
+      await handleAgentDisconnect(workspaceId, userId);
     });
   }
 
   // ── Visitor-only handlers ──────────────────────────────────────────────────
 
   if (role === "visitor") {
-    /**
-     * chat:start
-     * Visitor opens a new conversation. Triggers skill-based routing.
-     * Payload: { chatId, requiredSkillId, visitorName?, visitorEmail?, visitorMeta? }
-     */
     socket.on("chat:start", async (payload: ChatStartPayload) => {
       try {
         if (!payload.chatId || !payload.requiredSkillId) {
@@ -166,10 +143,9 @@ export function registerChatHandlers(io: IoServer, socket: AppSocket): void {
           return;
         }
 
-        // Join a room keyed by chatId so agent messages reach this socket
         socket.join(`conversation:${payload.chatId}`);
 
-        await routeNewChat(io, tenantId, socket.id, payload);
+        await routeNewChat(io, workspaceId, socket.id, payload);
       } catch (err) {
         console.error("[chatHandlers] chat:start error:", err);
         socket.emit("chat:error", {
@@ -179,11 +155,6 @@ export function registerChatHandlers(io: IoServer, socket: AppSocket): void {
       }
     });
 
-    /**
-     * message:send (visitor)
-     * Visitor sends a message inside an active conversation.
-     * Payload: { conversationId, text }
-     */
     socket.on("message:send", async (payload: MessageSendPayload) => {
       const { conversationId, text } = payload;
       if (!conversationId || !text?.trim()) return;
@@ -195,13 +166,11 @@ export function registerChatHandlers(io: IoServer, socket: AppSocket): void {
         timestamp: Date.now(),
       };
 
-      // 1. Broadcast to the assigned agent's tenant room
-      io.to(`tenant:${tenantId}`).emit("message:incoming", {
+      io.to(`workspace:${workspaceId}`).emit("message:incoming", {
         conversationId,
         message,
       });
 
-      // 2. Persist to Django (non-blocking)
       createMessage(conversationId, {
         sender_type: "visitor",
         text: message.text,
@@ -211,7 +180,7 @@ export function registerChatHandlers(io: IoServer, socket: AppSocket): void {
     });
 
     socket.on("disconnect", () => {
-      console.log(`[socket] visitor disconnected | tenant=${tenantId} id=${socket.id}`);
+      console.log(`[socket] visitor disconnected | workspace=${workspaceId} id=${socket.id}`);
     });
   }
 }

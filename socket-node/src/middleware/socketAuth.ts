@@ -7,19 +7,19 @@ import { redisClient } from "../lib/redisClient.js";
 export interface SocketData {
   role: "agent" | "visitor";
   userId: string | null;
-  tenantId: string;
+  workspaceId: string;
   email: string | null;
 }
 
 interface AgentJwtPayload extends JwtPayload {
   user_id: string;
-  tenant_id: string;
+  workspace_id: string;
   email?: string;
 }
 
-interface TenantApiKeyResponse {
-  tenant_id: string;
-  tenant_slug: string;
+interface WorkspaceApiKeyResponse {
+  workspace_id: string;
+  workspace_slug: string;
   allowed_domain: string;
 }
 
@@ -34,22 +34,22 @@ function verifyJwt(token: string): AgentJwtPayload {
 
 async function validateApiKey(
   apiKey: string
-): Promise<TenantApiKeyResponse | null> {
+): Promise<WorkspaceApiKeyResponse | null> {
   const cacheKey = `${CACHE_PREFIX}${apiKey}`;
 
   const cached = await redisClient.get(cacheKey);
   if (cached !== null) {
     if (cached === CACHE_SENTINEL_INVALID) return null;
-    return JSON.parse(cached) as TenantApiKeyResponse;
+    return JSON.parse(cached) as WorkspaceApiKeyResponse;
   }
 
-  let tenantData: TenantApiKeyResponse;
+  let workspaceData: WorkspaceApiKeyResponse;
   try {
-    const response = await axios.get<TenantApiKeyResponse>(
+    const response = await axios.get<WorkspaceApiKeyResponse>(
       `${config.djangoInternalUrl}/api/v1/internal/validate-api-key/`,
       { headers: { "X-Api-Key": apiKey }, timeout: 5000 }
     );
-    tenantData = response.data;
+    workspaceData = response.data;
   } catch (err) {
     if (axios.isAxiosError(err) && err.response?.status === 401) {
       await redisClient.set(
@@ -66,12 +66,12 @@ async function validateApiKey(
 
   await redisClient.set(
     cacheKey,
-    JSON.stringify(tenantData),
+    JSON.stringify(workspaceData),
     "EX",
     config.apiKeyCacheTtl
   );
 
-  return tenantData;
+  return workspaceData;
 }
 
 export async function socketAuthMiddleware(
@@ -88,14 +88,14 @@ export async function socketAuthMiddleware(
       const rawToken = token.startsWith("Bearer ") ? token.slice(7) : token;
       const payload = verifyJwt(rawToken);
 
-      if (!payload.user_id || !payload.tenant_id) {
+      if (!payload.user_id || !payload.workspace_id) {
         return next(new Error("AUTH_INVALID_JWT_CLAIMS"));
       }
 
       socket.data = {
         role: "agent",
         userId: payload.user_id,
-        tenantId: payload.tenant_id,
+        workspaceId: payload.workspace_id,
         email: payload.email ?? null,
       } satisfies SocketData;
 
@@ -110,13 +110,13 @@ export async function socketAuthMiddleware(
 
   if (apiKey) {
     try {
-      const tenantData = await validateApiKey(apiKey);
-      if (!tenantData) return next(new Error("AUTH_INVALID_API_KEY"));
+      const workspaceData = await validateApiKey(apiKey);
+      if (!workspaceData) return next(new Error("AUTH_INVALID_API_KEY"));
 
       socket.data = {
         role: "visitor",
         userId: null,
-        tenantId: tenantData.tenant_id,
+        workspaceId: workspaceData.workspace_id,
         email: null,
       } satisfies SocketData;
 

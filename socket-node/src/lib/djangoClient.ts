@@ -28,7 +28,7 @@ djangoClient.interceptors.response.use(
 
 export interface DjangoConversation {
   id: string;
-  tenant: string;
+  workspace: string;
   visitor_name: string;
   visitor_email: string;
   visitor_socket_id: string;

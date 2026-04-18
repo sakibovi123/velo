@@ -1,15 +1,32 @@
 "use client";
 
+import { Globe, Monitor, Link2, ExternalLink, Calendar, MessageSquare, User } from "lucide-react";
 import useInboxStore from "@/store/inboxStore";
 
-function DetailRow({ label, value }) {
-  if (!value) return null;
+function Section({ title, children }) {
   return (
-    <div>
-      <dt className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">{label}</dt>
-      <dd className="text-sm text-gray-800 mt-0.5 break-words">{value}</dd>
+    <div className="px-4 py-4 border-b border-zinc-100">
+      <p className="text-[10.5px] font-semibold text-zinc-400 uppercase tracking-widest mb-3">{title}</p>
+      <div className="space-y-3">{children}</div>
     </div>
   );
+}
+
+function Field({ icon: Icon, label, value }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-2.5">
+      <Icon className="w-3.5 h-3.5 text-zinc-400 mt-0.5 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] text-zinc-400 mb-0.5">{label}</p>
+        <p className="text-[12.5px] text-zinc-700 break-all leading-snug">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function initials(name) {
+  return (name || "V").charAt(0).toUpperCase();
 }
 
 export default function UserDetails() {
@@ -19,41 +36,79 @@ export default function UserDetails() {
 
   if (!active) {
     return (
-      <aside className="w-72 shrink-0 h-full border-l border-gray-200 bg-white flex items-center justify-center">
-        <p className="text-sm text-gray-400">No conversation selected</p>
+      <aside className="w-[256px] h-full bg-white border-l border-zinc-100 flex flex-col items-center justify-center shrink-0">
+        <User className="w-7 h-7 text-zinc-300 mb-2" />
+        <p className="text-[12.5px] text-zinc-400 text-center px-6">
+          Select a conversation to view visitor details
+        </p>
       </aside>
     );
   }
 
-  const { visitorName, visitorEmail, visitorMeta = {} } = active;
+  const { visitorName, visitorEmail, visitorMeta: m = {} } = active;
 
   return (
-    <aside className="w-72 shrink-0 h-full border-l border-gray-200 bg-white overflow-y-auto">
-      {/* Avatar + name */}
-      <div className="flex flex-col items-center py-6 px-4 border-b border-gray-100">
-        <div className="w-14 h-14 rounded-full bg-indigo-100 text-indigo-600 text-xl font-bold flex items-center justify-center mb-3">
-          {visitorName?.[0]?.toUpperCase() ?? "?"}
+    <aside className="w-[256px] h-full flex flex-col bg-white border-l border-zinc-100 overflow-y-auto scrollbar-thin shrink-0">
+      {/* Visitor identity */}
+      <div className="px-4 pt-5 pb-4 border-b border-zinc-100">
+        <p className="text-[10.5px] font-semibold text-zinc-400 uppercase tracking-widest mb-3">Visitor</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+            <span className="text-[15px] font-semibold text-indigo-600">{initials(visitorName)}</span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[13.5px] font-semibold text-zinc-900 truncate">{visitorName || "Visitor"}</p>
+            {visitorEmail && (
+              <p className="text-[11.5px] text-zinc-400 truncate">{visitorEmail}</p>
+            )}
+          </div>
         </div>
-        <p className="font-semibold text-gray-900 text-sm">{visitorName}</p>
-        {visitorEmail && <p className="text-xs text-gray-500 mt-0.5">{visitorEmail}</p>}
       </div>
 
-      {/* Details list */}
-      <dl className="px-4 py-4 space-y-4">
-        <DetailRow label="Location" value={visitorMeta.location} />
-        <DetailRow label="Browser" value={visitorMeta.browser} />
-        <DetailRow label="OS" value={visitorMeta.os} />
-        <DetailRow label="Page URL" value={visitorMeta.pageUrl} />
-        <DetailRow label="Referrer" value={visitorMeta.referrer} />
-        <DetailRow label="First seen" value={visitorMeta.firstSeen ? new Date(visitorMeta.firstSeen).toLocaleDateString() : null} />
-      </dl>
-
-      {/* Previous conversations count */}
-      {visitorMeta.previousConversations != null && (
-        <div className="mx-4 mt-2 px-3 py-2 bg-gray-50 rounded-lg text-xs text-gray-500">
-          {visitorMeta.previousConversations} previous conversation{visitorMeta.previousConversations !== 1 ? "s" : ""}
-        </div>
+      {/* Session info */}
+      {(m.location || m.browser || m.os) && (
+        <Section title="Session">
+          <Field icon={Globe} label="Location" value={m.location} />
+          <Field icon={Monitor} label="Browser" value={m.browser} />
+          <Field icon={Monitor} label="OS" value={m.os} />
+        </Section>
       )}
+
+      {/* Page */}
+      {(m.pageUrl || m.referrer) && (
+        <Section title="Page">
+          <Field icon={Link2} label="Current URL" value={m.pageUrl} />
+          <Field icon={ExternalLink} label="Referrer" value={m.referrer} />
+        </Section>
+      )}
+
+      {/* History */}
+      {(m.firstSeen || m.previousConversations != null) && (
+        <Section title="History">
+          {m.firstSeen && (
+            <Field
+              icon={Calendar}
+              label="First seen"
+              value={new Date(m.firstSeen).toLocaleDateString("en", {
+                month: "short", day: "numeric", year: "numeric",
+              })}
+            />
+          )}
+          {m.previousConversations != null && (
+            <Field
+              icon={MessageSquare}
+              label="Previous chats"
+              value={String(m.previousConversations)}
+            />
+          )}
+        </Section>
+      )}
+
+      {/* Conversation ID */}
+      <div className="px-4 py-4 mt-auto">
+        <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-1.5">Conversation ID</p>
+        <p className="text-[10.5px] text-zinc-400 font-mono break-all">{active.id}</p>
+      </div>
     </aside>
   );
 }
