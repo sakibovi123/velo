@@ -2,13 +2,53 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MessageSquare, BarChart2, Settings, LogOut, Zap } from "lucide-react";
+import {
+  MessageSquare,
+  BarChart2,
+  BookOpen,
+  Sparkles,
+  Tag,
+  Users,
+  Webhook,
+  ShieldCheck,
+  Settings,
+  UserCircle,
+  LogOut,
+  Zap,
+} from "lucide-react";
 import useInboxStore from "@/store/inboxStore";
 
-const NAV = [
-  { label: "Inbox", href: "/inbox", icon: MessageSquare },
-  { label: "Reports", href: "/reports", icon: BarChart2 },
-  { label: "Settings", href: "/settings", icon: Settings },
+const NAV_SECTIONS = [
+  {
+    label: "Workspace",
+    items: [
+      { label: "Inbox", href: "/inbox", icon: MessageSquare },
+      { label: "Reports", href: "/reports", icon: BarChart2 },
+    ],
+  },
+  {
+    label: "Knowledge",
+    items: [
+      { label: "Knowledge Base", href: "/knowledge", icon: BookOpen },
+      { label: "AI Copilot", href: "/copilot", icon: Sparkles },
+    ],
+  },
+  {
+    label: "Team",
+    items: [
+      { label: "Agents", href: "/agents", icon: Users },
+      { label: "Skills", href: "/skills", icon: Tag },
+      { label: "Audit Logs", href: "/audit", icon: ShieldCheck },
+    ],
+  },
+  {
+    label: "Configure",
+    items: [
+      { label: "Webhooks", href: "/webhooks", icon: Webhook },
+      { label: "Settings", href: "/settings", icon: Settings },
+      { label: "Profile", href: "/profile", icon: UserCircle },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -36,24 +76,37 @@ export default function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {NAV.map(({ label, href, icon: Icon }) => {
-          const active = pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors group ${
-                active
-                  ? "bg-[#1f1f1f] text-white"
-                  : "text-zinc-500 hover:text-zinc-200 hover:bg-[#1a1a1a]"
-              }`}
-            >
-              <Icon className={`w-4 h-4 shrink-0 ${active ? "text-indigo-400" : "text-zinc-600 group-hover:text-zinc-300"}`} />
-              {label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label}>
+            <div className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+              {section.label}
+            </div>
+            <div className="space-y-0.5">
+              {section.items.map(({ label, href, icon: Icon }) => {
+                const active = pathname.startsWith(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors group ${
+                      active
+                        ? "bg-[#1f1f1f] text-white"
+                        : "text-zinc-500 hover:text-zinc-200 hover:bg-[#1a1a1a]"
+                    }`}
+                  >
+                    <Icon
+                      className={`w-4 h-4 shrink-0 ${
+                        active ? "text-indigo-400" : "text-zinc-600 group-hover:text-zinc-300"
+                      }`}
+                    />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Footer */}

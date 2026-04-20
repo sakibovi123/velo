@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { Search, MessageSquare } from "lucide-react";
 import useInboxStore from "@/store/inboxStore";
+import SlaCountdown from "./SlaCountdown";
 
-const TABS = ["all", "open", "pending", "resolved"];
+const TABS = ["all", "open", "pending", "snoozed", "resolved"];
 
 const STATUS_DOT = {
   open: "bg-emerald-400",
   pending: "bg-amber-400",
+  snoozed: "bg-amber-300",
   resolved: "bg-zinc-300",
 };
 
@@ -55,13 +57,15 @@ export default function ChatList() {
   }
 
   const counts = {
-    all: conversations.length,
+    all: conversations.filter((c) => c.status !== "merged").length,
     open: conversations.filter((c) => c.status === "open").length,
     pending: conversations.filter((c) => c.status === "pending").length,
+    snoozed: conversations.filter((c) => c.status === "snoozed").length,
     resolved: conversations.filter((c) => c.status === "resolved").length,
   };
 
   const filtered = conversations.filter((c) => {
+    if (c.status === "merged") return false;
     if (tab !== "all" && c.status !== tab) return false;
     if (search && !c.visitorName?.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -158,6 +162,36 @@ export default function ChatList() {
                         <div className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[c.status] || "bg-zinc-300"}`} />
                       </div>
                     </div>
+                    {/* tags + SLA + assignee strip */}
+                    {((c.tags ?? []).length > 0 || c.assignedAgent || c.status === "open" || c.status === "pending") && (
+                      <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                        {(c.tags ?? []).slice(0, 3).map((t) => (
+                          <span
+                            key={t.id}
+                            className="inline-flex items-center gap-1 px-1.5 h-4 rounded text-[10px] font-medium"
+                            style={{
+                              color: t.color,
+                              background: t.color + "15",
+                            }}
+                          >
+                            <span className="w-1 h-1 rounded-full" style={{ background: t.color }} />
+                            {t.name}
+                          </span>
+                        ))}
+                        {(c.tags ?? []).length > 3 && (
+                          <span className="text-[10px] text-zinc-400">+{c.tags.length - 3}</span>
+                        )}
+                        <SlaCountdown conversation={c} />
+                        {c.assignedAgent && (
+                          <span
+                            className="ml-auto w-4 h-4 rounded-full bg-indigo-100 text-indigo-600 text-[8.5px] font-semibold flex items-center justify-center"
+                            title={`Assigned to ${c.assignedAgent.full_name}`}
+                          >
+                            {initials(c.assignedAgent.full_name)}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </button>
