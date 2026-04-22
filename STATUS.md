@@ -31,7 +31,7 @@
 | Side Conversations | ❌ | |
 | Conversation-to-Ticket Conversion | ❌ | |
 | AI Inbox Translations | ❌ | |
-| Omnichannel (email, WhatsApp, SMS, phone) | ❌ | Chat (Socket.io) only |
+| Omnichannel (email, WhatsApp, SMS, phone) | 🔧 | Email + WhatsApp shipped (SendGrid Inbound Parse + Twilio); SMS / phone not started |
 | Pinnable inboxes | ❌ | |
 
 ---
@@ -177,6 +177,9 @@
 | RAG document CRUD | ✅ | `GET/POST /rag/documents/`, `GET/PATCH/DELETE /rag/documents/{id}/` |
 | RAG query endpoint | ✅ | `POST /rag/query/` — RetrievalQA via gpt-4o-mini |
 | pgvector workspace-scoped collections | ✅ | `velo_rag_{workspace_id}` |
+| ChannelAccount CRUD (admin) | ✅ | `GET/POST /conversations/channels/`, `GET/PATCH/DELETE /conversations/channels/{id}/` |
+| Inbound channel webhook (email + WhatsApp) | ✅ | `POST /webhooks/inbound/{channel}/{account_id}/?secret=…` |
+| Outbound channel reply | ✅ | `POST /conversations/{id}/reply/` (email via Django mail, WhatsApp via Twilio) |
 | Workspace settings endpoint (`PATCH /workspaces/{id}/`) | ❌ | No update endpoint |
 | Invite teammates endpoint (`POST /agents/invite/`) | ❌ | |
 | Conversation summarization endpoint | ❌ | `POST /conversations/{id}/summarize/` |

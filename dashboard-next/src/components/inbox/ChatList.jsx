@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, MessageSquare } from "lucide-react";
+import { Search, MessageSquare, Mail, Phone } from "lucide-react";
 import useInboxStore from "@/store/inboxStore";
 import SlaCountdown from "./SlaCountdown";
 
 const TABS = ["all", "open", "pending", "snoozed", "resolved"];
+const CHANNEL_FILTERS = [
+  { id: "all",      label: "All",      icon: null },
+  { id: "chat",     label: "Chat",     icon: MessageSquare },
+  { id: "email",    label: "Email",    icon: Mail },
+  { id: "whatsapp", label: "WhatsApp", icon: Phone },
+];
+const CHANNEL_ICON = { chat: MessageSquare, email: Mail, whatsapp: Phone };
 
 const STATUS_DOT = {
   open: "bg-emerald-400",
@@ -44,6 +51,7 @@ export default function ChatList() {
   const init = useInboxStore((s) => s.init);
 
   const [tab, setTab] = useState("all");
+  const [channelFilter, setChannelFilter] = useState("all");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -66,6 +74,7 @@ export default function ChatList() {
 
   const filtered = conversations.filter((c) => {
     if (c.status === "merged") return false;
+    if (channelFilter !== "all" && (c.channel ?? "chat") !== channelFilter) return false;
     if (tab !== "all" && c.status !== tab) return false;
     if (search && !c.visitorName?.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -91,7 +100,7 @@ export default function ChatList() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Status tabs */}
       <div className="flex gap-1 px-3 py-2.5 border-b border-zinc-100">
         {TABS.map((t) => (
           <button
@@ -107,6 +116,24 @@ export default function ChatList() {
             <span className={`text-[10.5px] ${tab === t ? "text-zinc-500" : "text-zinc-400"}`}>
               {counts[t]}
             </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Channel filter */}
+      <div className="flex gap-1 px-3 py-2 border-b border-zinc-100 overflow-x-auto scrollbar-thin">
+        {CHANNEL_FILTERS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setChannelFilter(id)}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${
+              channelFilter === id
+                ? "bg-indigo-50 text-indigo-700"
+                : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50"
+            }`}
+          >
+            {Icon && <Icon className="w-3 h-3" />}
+            {label}
           </button>
         ))}
       </div>
@@ -142,8 +169,12 @@ export default function ChatList() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className={`text-[13px] font-medium truncate ${active ? "text-indigo-700" : "text-zinc-900"}`}>
-                        {c.visitorName || "Visitor"}
+                      <span className={`text-[13px] font-medium truncate flex items-center gap-1.5 ${active ? "text-indigo-700" : "text-zinc-900"}`}>
+                        {(() => {
+                          const Icon = CHANNEL_ICON[c.channel ?? "chat"] ?? MessageSquare;
+                          return <Icon className="w-3 h-3 text-zinc-400 shrink-0" />;
+                        })()}
+                        <span className="truncate">{c.visitorName || "Visitor"}</span>
                       </span>
                       <span className="text-[11px] text-zinc-400 shrink-0 ml-2">
                         {formatTime(c.updatedAt)}

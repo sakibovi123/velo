@@ -15,6 +15,7 @@ import {
   UserCircle,
   LogOut,
   Zap,
+  Inbox,
 } from "lucide-react";
 import useInboxStore from "@/store/inboxStore";
 
@@ -44,6 +45,7 @@ const NAV_SECTIONS = [
   {
     label: "Configure",
     items: [
+      { label: "Channels", href: "/settings/channels", icon: Inbox },
       { label: "Webhooks", href: "/webhooks", icon: Webhook },
       { label: "Settings", href: "/settings", icon: Settings },
       { label: "Profile", href: "/profile", icon: UserCircle },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, CheckCircle, Clock, RotateCcw, MessageSquare, MoreHorizontal, GitMerge, StickyNote, Languages, Eye, EyeOff } from "lucide-react";
+import { Send, CheckCircle, Clock, RotateCcw, MessageSquare, MoreHorizontal, GitMerge, StickyNote, Languages, Eye, EyeOff, Mail, Phone } from "lucide-react";
 import useInboxStore from "@/store/inboxStore";
 import AssigneePicker from "./AssigneePicker";
 import SnoozePicker from "./SnoozePicker";
@@ -17,6 +17,12 @@ const STATUS_PILL = {
   merged: "text-zinc-500 bg-zinc-100 border-zinc-200",
 };
 
+const CHANNEL_META = {
+  chat:     { label: "Chat",     icon: MessageSquare, color: "text-indigo-600 bg-indigo-50 border-indigo-200" },
+  email:    { label: "Email",    icon: Mail,          color: "text-sky-600    bg-sky-50    border-sky-200" },
+  whatsapp: { label: "WhatsApp", icon: Phone,         color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+};
+
 function formatTime(ts) {
   if (!ts) return "";
   return new Date(ts).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" });
@@ -30,6 +36,7 @@ export default function ConversationView() {
   const conversations = useInboxStore((s) => s.conversations);
   const activeId = useInboxStore((s) => s.activeConversationId);
   const sendMessage = useInboxStore((s) => s.sendMessage);
+  const replyViaChannel = useInboxStore((s) => s.replyViaChannel);
   const addInternalNote = useInboxStore((s) => s.addInternalNote);
   const setStatus = useInboxStore((s) => s.setConversationStatus);
   const isLoading = useInboxStore((s) => s.isLoading);
@@ -94,7 +101,17 @@ export default function ConversationView() {
         setTranslatingDraft(false);
       }
     }
-    sendMessage(text);
+    if ((active.channel ?? "chat") === "chat") {
+      sendMessage(text);
+    } else {
+      try {
+        await replyViaChannel(active.id, text);
+      } catch (err) {
+        console.error("[ConversationView] channel reply failed", err);
+        alert(err?.response?.data?.error?.message ?? "Failed to send reply.");
+        return;
+      }
+    }
     setDraft("");
   }
 
@@ -143,6 +160,19 @@ export default function ConversationView() {
             <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-medium border capitalize shrink-0 ${STATUS_PILL[active.status] || STATUS_PILL.open}`}>
               {active.status}
             </span>
+            {(() => {
+              const meta = CHANNEL_META[active.channel ?? "chat"] ?? CHANNEL_META.chat;
+              const Icon = meta.icon;
+              return (
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border shrink-0 ${meta.color}`}
+                  title={`Channel · ${meta.label}`}
+                >
+                  <Icon className="w-3 h-3" />
+                  {meta.label}
+                </span>
+              );
+            })()}
             <SlaCountdown conversation={active} />
           </div>
 
@@ -223,6 +253,11 @@ export default function ConversationView() {
           ))}
           {!isLocked && <TagPicker conversation={active} />}
         </div>
+        {active.channel === "email" && active.subject && (
+          <div className="pl-11 text-[12px] text-zinc-500">
+            <span className="font-semibold text-zinc-600">Subject:</span> {active.subject}
+          </div>
+        )}
       </div>
 
       {/* Messages */}

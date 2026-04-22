@@ -1,7 +1,10 @@
 "use client";
 
-import { Globe, Monitor, Link2, ExternalLink, Calendar, MessageSquare, User } from "lucide-react";
+import { Globe, Monitor, Link2, ExternalLink, Calendar, MessageSquare, User, Mail, Phone, Hash } from "lucide-react";
 import useInboxStore from "@/store/inboxStore";
+
+const CHANNEL_LABEL = { chat: "Live chat", email: "Email", whatsapp: "WhatsApp" };
+const CHANNEL_ICON = { chat: MessageSquare, email: Mail, whatsapp: Phone };
 
 function Section({ title, children }) {
   return (
@@ -45,7 +48,8 @@ export default function UserDetails() {
     );
   }
 
-  const { visitorName, visitorEmail, visitorMeta: m = {} } = active;
+  const { visitorName, visitorEmail, visitorPhone, channel, subject, visitorMeta: m = {} } = active;
+  const ChannelIcon = CHANNEL_ICON[channel ?? "chat"] ?? MessageSquare;
 
   return (
     <aside className="w-[256px] h-full flex flex-col bg-white border-l border-zinc-100 overflow-y-auto scrollbar-thin shrink-0">
@@ -61,9 +65,20 @@ export default function UserDetails() {
             {visitorEmail && (
               <p className="text-[11.5px] text-zinc-400 truncate">{visitorEmail}</p>
             )}
+            {visitorPhone && (
+              <p className="text-[11.5px] text-zinc-400 truncate">{visitorPhone}</p>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Channel */}
+      <Section title="Channel">
+        <Field icon={ChannelIcon} label="Source" value={CHANNEL_LABEL[channel ?? "chat"]} />
+        {channel === "email" && subject && (
+          <Field icon={Hash} label="Subject" value={subject} />
+        )}
+      </Section>
 
       {/* Session info */}
       {(m.location || m.browser || m.os) && (

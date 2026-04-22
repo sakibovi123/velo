@@ -12,6 +12,7 @@ import { registerChatHandlers } from "./handlers/chatHandlers.js";
 // ─── Express ──────────────────────────────────────────────────────────────────
 
 const app = express();
+app.use(express.json({ limit: "1mb" }));
 
 app.get("/health", (_req, res) => {
   res.json({ success: true, data: { status: "ok" }, error: null });
@@ -32,6 +33,35 @@ const io = new Server<
     methods: ["GET", "POST"],
   },
   transports: ["websocket", "polling"],
+});
+
+// ─── Internal broadcast endpoint (called by Django webhooks) ──────────────────
+// Lets Django push channel inbound/outbound messages into agent rooms without
+// the agent having to poll. Authenticated via the shared INTERNAL_API_SECRET.
+
+app.post("/internal/broadcast", (req, res) => {
+  const secret = req.header("X-Internal-Secret");
+  if (!secret || secret !== config.internalApiSecret) {
+    return res
+      .status(401)
+      .json({ success: false, data: null, error: { code: "unauthorized", message: "Invalid internal secret." } });
+  }
+
+  const { event, workspaceId, conversationId, payload } = req.body ?? {};
+  if (!event || !workspaceId) {
+    return res
+      .status(400)
+      .json({ success: false, data: null, error: { code: "invalid", message: "event and workspaceId are required." } });
+  }
+
+  // Always notify all agents in the workspace
+  io.to(`workspace:${workspaceId}`).emit(event, payload ?? { conversationId });
+  // Also notify anyone watching this specific conversation room
+  if (conversationId) {
+    io.to(`conversation:${conversationId}`).emit(event, payload ?? { conversationId });
+  }
+
+  return res.json({ success: true, data: { delivered: true }, error: null });
 });
 
 // ─── Redis adapter (must precede middleware + event handlers) ─────────────────

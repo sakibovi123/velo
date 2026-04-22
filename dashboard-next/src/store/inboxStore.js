@@ -14,7 +14,11 @@ function normalizeConversation(c) {
     id: c.id,
     visitorName: c.visitorName ?? c.visitor_name ?? "Visitor",
     visitorEmail: c.visitorEmail ?? c.visitor_email ?? null,
+    visitorPhone: c.visitorPhone ?? c.visitor_phone ?? null,
     visitorMeta: c.visitorMeta ?? c.visitor_meta ?? {},
+    channel: c.channel ?? "chat",
+    channelAccount: c.channelAccount ?? c.channel_account ?? null,
+    subject: c.subject ?? "",
     status: c.status ?? "open",
     unread: c.unread ?? 0,
     lastMessage:
@@ -353,6 +357,57 @@ const useInboxStore = create((set, get) => ({
       assignedAgent: data.data.assigned_agent,
       assigned_agent: data.data.assigned_agent,
     });
+  },
+
+  // ----- Channel reply (email / whatsapp) -------------------------------
+  /**
+   * Send an outbound reply via the conversation's channel adapter (email,
+   * WhatsApp, …). For ``channel === "chat"`` use {@link sendMessage} which
+   * goes through Socket.io.
+   */
+  async replyViaChannel(conversationId, text) {
+    const { data } = await api.post(
+      `/conversations/${conversationId}/reply/`,
+      { text }
+    );
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === conversationId
+          ? {
+              ...c,
+              messages: [...(c.messages ?? []), data.data],
+              lastMessage: data.data.text,
+              updatedAt: Date.now(),
+            }
+          : c
+      ),
+    }));
+    return data.data;
+  },
+
+  // ----- Channel accounts (admin settings page) -------------------------
+  async loadChannelAccounts() {
+    try {
+      const { data } = await api.get("/conversations/channels/");
+      return data.data;
+    } catch (err) {
+      console.error("[inboxStore] loadChannelAccounts failed", err);
+      return [];
+    }
+  },
+
+  async createChannelAccount(payload) {
+    const { data } = await api.post("/conversations/channels/", payload);
+    return data.data;
+  },
+
+  async updateChannelAccount(id, patch) {
+    const { data } = await api.patch(`/conversations/channels/${id}/`, patch);
+    return data.data;
+  },
+
+  async deleteChannelAccount(id) {
+    await api.delete(`/conversations/channels/${id}/`);
   },
 
   // ----- Internal notes --------------------------------------------------
